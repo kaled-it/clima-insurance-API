@@ -1,0 +1,8 @@
+joblib
+numpy
+scikit-learn==1.6.1
+flask
+flask-sqlalchemy
+flask-marshmallow
+marshmallow-sqlalchemy
+mysqlclient

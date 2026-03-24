@@ -1,31 +1,34 @@
 from flask import Flask,request,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from decouple import config
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 #### CONFIGURACION DE SQLALCHEMY ####
 app.app_context().push()
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root2025@localhost:3306/db_g6'
+app.config['SQLALCHEMY_DATABASE_URI'] = config('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
 ### CREAMOS UNA CLASE QUE VA A CONVERTIRSE EN UNA TABLA SQL
 
-class Housing(db.Model):
+class Insurance(db.Model):
     id = db.Column(db.Integer,primary_key=True)
-    rooms = db.Column(db.Integer,nullable=False)
+    age = db.Column(db.Integer,nullable=False)
     price = db.Column(db.Double,nullable=True)
     
-    def __init__(self,rooms):
-        self.rooms = rooms
+    def __init__(self,age):
+        self.age = age
         
 ### CREAMOS UN ESQUEMA PAARA SERIALIZAR LOS DATOS
 ma = Marshmallow(app)
-class HousingSchema(ma.Schema):
+class InsuranceSchema(ma.Schema):
     id = ma.Integer()
-    rooms = ma.Integer()
+    age = ma.Integer()
     price = ma.Float()
     
 ## REGISTRAMOS LA TABLA EN LA BASE DE DATOS
@@ -42,10 +45,10 @@ model = joblib.load('./model/model.pkl')
 sc_x = joblib.load('./model/scaler_x.pkl')
 sc_y = joblib.load('./model/scaler_y.pkl')
 
-def predict_price(rooms):
-    rooms_sc = sc_x.transform(np.array([[rooms]]))
-    prediction = model.predict(rooms_sc)
-    prediction_sc = sc_y.inverse_transform(prediction) * 1000
+def predict_price(age):
+    age_sc = sc_x.transform(np.array([[age]]))
+    prediction = model.predict(age_sc)
+    prediction_sc = sc_y.inverse_transform(prediction)
     price = round(float(prediction_sc[0][0]),2)
     return price
 
@@ -54,77 +57,76 @@ def predict_price(rooms):
 @app.route('/')
 def index():
     context = {
-        'title':'FLASK API VERSION 1.0',
-        'message':'Bienvenido a mi API'
+        'title':'TRABAJO FINAL MOULO 8',
+        'message':'JOSE RICARDO HP : '
     }
     return jsonify(context)
 
-@app.route('/housing_price',methods=['POST'])
-def housing_price():
-    rooms = request.json['rooms']
-    price = predict_price(rooms)
+@app.route('/insurance_price',methods=['POST'])
+def insurance_price():
+    age = request.json['age']
+    price = predict_price(age)
     context = {
         'message':'precio predicho',
-        'habitaciones': rooms,
-        'precio': price
+        'edad': age,
+        'prima seguro': price
     }
     
     return jsonify(context)
 
-###### RUTAS PARA HOUSING API
-@app.route('/housing',methods=['POST'])
+@app.route('/insurance',methods=['POST'])
 def set_data():
-    rooms = request.json['rooms']
-    price = predict_price(rooms)
+    age = request.json['age']
+    price = predict_price(age)
     
     #registramos los datos en la tabla
-    new_housing = Housing(rooms)
-    new_housing.price = price
-    db.session.add(new_housing)
-    db.session.commit()
+    new_insurance = Insurance(age)
+    new_insurance.price = price
+    db.session.add(new_insurance)
+    db.session.commit() # insert into housing ...
     
-    data_schema = HousingSchema()
+    data_schema = InsuranceSchema()
     
-    context = data_schema.dump(new_housing)
+    context = data_schema.dump(new_insurance)
     
     return jsonify(context)
 
-@app.route('/housing',methods=['GET'])
+@app.route('/insurance',methods=['GET'])
 def get_data():
-    data = Housing.query.all() # select * from housing
-    data_schema = HousingSchema(many=True)
+    data = Insurance.query.all() # select * from housing
+    data_schema = InsuranceSchema(many=True)
     return jsonify(data_schema.dump(data))
 
-@app.route('/housing/<int:id>',methods=['GET'])
+@app.route('/insurance/<int:id>',methods=['GET'])
 def get_data_by_id(id):
-    data = Housing.query.get(id) # select * from housing where id = id
-    data_schema = HousingSchema()
+    data = Insurance.query.get(id) # select * from housing where id = id
+    data_schema = InsuranceSchema()
     
     return jsonify(data_schema.dump(data)),200 if data else 404
 
-@app.route('/housing/<int:id>',methods=['PUT'])
+@app.route('/insurance/<int:id>',methods=['PUT'])
 def update_data(id):
-    data = Housing.query.get(id) #select * from housing where id = id
+    data = Insurance.query.get(id) #select * from housing where id = id
     if not data:
         context = {
             'message':'Registro no encontrado'
         }
         return jsonify(context),404
     
-    rooms = request.json['rooms']
-    price = predict_price(rooms)
+    age = request.json['age']
+    price = predict_price(age)
     
-    data.rooms = rooms
+    data.age = age
     data.price = price
     db.session.commit()
     
-    data_schema = HousingSchema()
+    data_schema = InsuranceSchema()
     
     return jsonify(data_schema.dump(data)),200
 
-@app.route('/housing/<int:id>',methods=['DELETE'])
+@app.route('/insurance/<int:id>',methods=['DELETE'])
 def delete_data(id):
-    data = Housing.query.get(id)
+    data = Insurance.query.get(id)
     
     if not data:
         context = {
@@ -141,6 +143,5 @@ def delete_data(id):
     
     return jsonify(context),200
 
-    
 if __name__ == '__main__':
     app.run(debug=True)

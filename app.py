@@ -58,7 +58,7 @@ def predict_price(age):
 def index():
     context = {
         'title':'TRABAJO FINAL MOULO 8',
-        'message':'JOSE RICARDO HP : '
+        'message':'Caled Itamar Lima Roque: '
     }
     return jsonify(context)
 

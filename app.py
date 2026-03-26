@@ -80,33 +80,33 @@ def set_data():
     price = predict_price(age)
     
     #registramos los datos en la tabla
-    new_insurance = Insurance(age)
-    new_insurance.price = price
-    db.session.add(new_insurance)
-    db.session.commit() # insert into housing ...
+    new_data = Insurance(age)
+    new_data.price = price
+    db.session.add(new_data)
+    db.session.commit() # insert into insurance ...
     
     data_schema = InsuranceSchema()
     
-    context = data_schema.dump(new_insurance)
+    context = data_schema.dump(new_data)
     
     return jsonify(context)
 
 @app.route('/insurance',methods=['GET'])
 def get_data():
-    data = Insurance.query.all() # select * from housing
+    data = Insurance.query.all() # select * from insurance
     data_schema = InsuranceSchema(many=True)
     return jsonify(data_schema.dump(data))
 
 @app.route('/insurance/<int:id>',methods=['GET'])
 def get_data_by_id(id):
-    data = Insurance.query.get(id) # select * from housing where id = id
+    data = Insurance.query.get(id) # select * from insurance where id = id
     data_schema = InsuranceSchema()
     
     return jsonify(data_schema.dump(data)),200 if data else 404
 
 @app.route('/insurance/<int:id>',methods=['PUT'])
 def update_data(id):
-    data = Insurance.query.get(id) #select * from housing where id = id
+    data = Insurance.query.get(id) #select * from insurance where id = id
     if not data:
         context = {
             'message':'Registro no encontrado'
